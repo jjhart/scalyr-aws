@@ -1,0 +1,123 @@
+#!/usr/bin/python
+# AWS utility for Scalyr
+# Copyright 2014 Scalyr Inc.
+
+import argparse
+import boto3
+import datetime
+from decimal import Decimal
+import json
+import pytz
+import sys
+
+def load_instance_types( filename="instance.types" ):
+    lines = []
+    try:
+        with open( filename, 'r' ) as f:
+            lines = f.read().splitlines()
+    except:
+        print "Error reading instance types from '%s'.  Using defaults." % filename
+    if not lines:
+        lines = [
+            'c4.8xlarge',
+            'c3.8xlarge',
+            'c3.4xlarge',
+            'm1.xlarge',
+            'c4.xlarge'
+        ]
+    return lines
+
+def update_spot_price_history( history, zones ):
+    min_date = history[0]['Timestamp']
+
+    for spot_price in history:
+        zone_data = {
+            'mean': Decimal( 0.0 ),
+            'max': Decimal( 0.0 ),
+            'min': Decimal( 100000.0 ),
+            'values' : []
+            }
+        zone = spot_price['AvailabilityZone']
+        if zone not in zones:
+            zones[ zone ] = zone_data
+        else:
+            zone_data = zones[ zone ]
+        
+        price = Decimal( spot_price['SpotPrice'] )
+        if zone_data['values']:
+            count = len( zone_data['values'] )
+            zone_data['mean'] = (price + (zone_data['mean']*count)) / (count + 1)
+        else:
+            zone_data['mean'] = price
+
+        zone_data['max'] = max( price, zone_data['max'] )
+        zone_data['min'] = min( price, zone_data['min'] )
+
+        zone_data['values'].append( price )
+
+        min_date = min( min_date, spot_price['Timestamp'] )
+
+    return min_date.date()
+
+def commandSpotPrice( parser ):
+    instance_types = load_instance_types()
+    parser.add_argument( '--type', required=True, help="The instance type to query spot pricing for.",
+                         choices=instance_types )
+    args = parser.parse_args()
+    ec2 = boto3.client( 'ec2', region_name="us-east-1" )
+
+    end_time = (datetime.datetime.today()).replace( tzinfo=pytz.utc )
+    start_time = end_time  + datetime.timedelta(-7)
+    print "Processing",
+    response = ec2.describe_spot_price_history( StartTime=start_time.strftime("%Y-%m-%d") , EndTime=end_time.strftime("%Y-%m-%d"),
+                                                InstanceTypes=[ args.type ],
+                                                ProductDescriptions=[ 'Linux/UNIX'] )
+
+
+    zones = {}
+    current_date = (end_time + datetime.timedelta( 1 )).date()
+    update_spot_price_history( response['SpotPriceHistory'], zones )
+    while response['NextToken']:
+        sys.stdout.flush()
+        response = ec2.describe_spot_price_history( NextToken=response['NextToken'] )
+        last_date = update_spot_price_history( response['SpotPriceHistory'], zones )
+        if last_date < current_date:
+            print ("\n%s" % last_date.strftime( "%Y-%m-%d" )),
+            current_date = last_date
+        print ".",
+
+    print "" 
+        
+    for k,v in zones.iteritems():
+        print k
+        print "    mean: %.4f" % v['mean']
+        print "    max: %.4f" % v['max']
+        print "    min: %.4f" % v['min']
+
+
+if __name__ == '__main__':
+    all_commands = {
+        'spot-price' : commandSpotPrice,
+    }
+
+    parser = argparse.ArgumentParser(description='Scalyr command-line tool for AWS benchmarking.')
+    parser.add_argument('command', choices=all_commands.keys(),
+                        help='specifies the action to be performed')
+    command = None
+    # Because the options are command-specific, we cannot fully parse the arguments until we know the
+    # command... but we also need to know which command to invoke so that we can add the command-specific
+    # options and then execute the command.  So, here, we just guess what the command is by looking over all the
+    # arguments and seeing the first one that matches one of the possible commands.
+    for arg in sys.argv[1:]:
+        if arg in all_commands:
+            command = arg
+
+    # If we could not find a possible command, then just try to parse the commandline with the current options, which
+    # we know will fail since there's no valid value for 'command'.
+    if command is None:
+        tmp_args = parser.parse_args()
+
+    # Invoke the command's function from the all_command's mapping.  We really should change this to a more
+    # object oriented approach.
+    command_func = all_commands[command]
+    command_func( parser )
