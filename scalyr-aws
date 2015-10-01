@@ -3,12 +3,19 @@
 # Copyright 2014 Scalyr Inc.
 
 import argparse
+import base64
 import boto3
 import datetime
 from decimal import Decimal
+from email.mime.text import MIMEText
 import json
 import pytz
+import smtplib
 import sys
+import time
+
+REGION_NAME='us-east-1'
+SCALYR_BENCHMARK_EMAIL='s3-benchmark@scalyr.com'
 
 def load_instance_types( filename="instance.types" ):
     lines = []
@@ -25,24 +32,41 @@ def load_instance_types( filename="instance.types" ):
             'm1.xlarge',
             'c4.xlarge'
         ]
+    lines.append( 't2.micro' )
     return lines
 
-def update_spot_price_history( history, zones ):
-    min_date = history[0]['Timestamp']
+def get_availability_zones( ec2 ):
+    response = ec2.describe_availability_zones( Filters=[ { 'Name': 'state', 'Values' : ['available'] } ] )
+    return response
+
+def update_spot_price_history( history, types ):
+
+    epoch = datetime.datetime( 1970, 1, 1, 0, 0, 0, 0, pytz.utc )
 
     for spot_price in history:
+        instance_type = spot_price['InstanceType']
+        type_data = {
+            }
+        if instance_type not in types:
+            types[ instance_type ] = type_data
+        else:
+            type_data = types[ instance_type ]
+
         zone_data = {
+            'current': Decimal( 0.0 ),
+            'mostRecent': epoch,
             'mean': Decimal( 0.0 ),
             'max': Decimal( 0.0 ),
             'min': Decimal( 100000.0 ),
             'values' : []
             }
         zone = spot_price['AvailabilityZone']
-        if zone not in zones:
-            zones[ zone ] = zone_data
+
+        if zone not in type_data:
+            type_data[ zone ] = zone_data
         else:
-            zone_data = zones[ zone ]
-        
+            zone_data = type_data[ zone ]
+
         price = Decimal( spot_price['SpotPrice'] )
         if zone_data['values']:
             count = len( zone_data['values'] )
@@ -55,49 +79,234 @@ def update_spot_price_history( history, zones ):
 
         zone_data['values'].append( price )
 
-        min_date = min( min_date, spot_price['Timestamp'] )
-
-    return min_date.date()
+        if spot_price['Timestamp'] >= zone_data['mostRecent']:
+            zone_data['current'] = price
+            zone_data['mostRecent'] = spot_price['Timestamp']
 
 def commandSpotPrice( parser ):
     instance_types = load_instance_types()
+
+    choices = instance_types[:].append( 'all' )
     parser.add_argument( '--type', required=True, help="The instance type to query spot pricing for.",
-                         choices=instance_types )
+                         choices=choices )
+    parser.add_argument( '--days', default=30, type=int, help="The number of previous days to check" )
     args = parser.parse_args()
-    ec2 = boto3.client( 'ec2', region_name="us-east-1" )
+
+    if args.type != 'all':
+        instance_types = [ args.type ]
+
+    ec2 = boto3.client( 'ec2', region_name=REGION_NAME )
 
     end_time = (datetime.datetime.today()).replace( tzinfo=pytz.utc )
-    start_time = end_time  + datetime.timedelta(-7)
-    print "Processing",
-    response = ec2.describe_spot_price_history( StartTime=start_time.strftime("%Y-%m-%d") , EndTime=end_time.strftime("%Y-%m-%d"),
-                                                InstanceTypes=[ args.type ],
-                                                ProductDescriptions=[ 'Linux/UNIX'] )
-
-
-    zones = {}
+    start_time = end_time  + datetime.timedelta(-args.days)
+    types = {}
     current_date = (end_time + datetime.timedelta( 1 )).date()
-    update_spot_price_history( response['SpotPriceHistory'], zones )
-    while response['NextToken']:
-        sys.stdout.flush()
-        response = ec2.describe_spot_price_history( NextToken=response['NextToken'] )
-        last_date = update_spot_price_history( response['SpotPriceHistory'], zones )
-        if last_date < current_date:
-            print ("\n%s" % last_date.strftime( "%Y-%m-%d" )),
-            current_date = last_date
-        print ".",
+    print ("Processing, %s - %s" % ( start_time.date(), end_time.date()) )
+    paginator = ec2.get_paginator('describe_spot_price_history')
+    try:
+        for page in paginator.paginate( StartTime=start_time, EndTime=end_time,
+                                        InstanceTypes=instance_types,
+                                        ProductDescriptions=[ 'Linux/UNIX' ] ):
 
-    print "" 
-        
-    for k,v in zones.iteritems():
-        print k
-        print "    mean: %.4f" % v['mean']
-        print "    max: %.4f" % v['max']
-        print "    min: %.4f" % v['min']
+            update_spot_price_history( page['SpotPriceHistory'], types )
+            print ".",
+            sys.stdout.flush()
 
+        print ""
+    except KeyboardInterrupt:
+        print ""
+
+    print "%s\t%s\t%s\t%s\t%s\t%s" % ('instance', 'avail. zone', 'current', 'mean', 'max', 'min')
+    for instance_type, instances in types.iteritems():
+        for region, values in instances.iteritems():
+            print "%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f" % (instance_type, region, values['current'], values['mean'], values['max'], values['min'])
+
+def replaceAll( text, items ):
+    for key, value in items.iteritems():
+        text = text.replace( key, value )
+    return text
+
+def prepareAgentConfig( api_key, instance_type, count, region, zone ):
+    content = ""
+    with open( 'agent.json.template', 'r' ) as f:
+        content = f.read()
+
+    items = {
+        '%apiKey%' : api_key,
+        '%instanceType%' : instance_type,
+        '%region%' : region,
+        '%zone%' : zone,
+    };
+
+    return replaceAll( content, items )
+
+def prepareProvisionScript( agent_config, group, encode=True ):
+    script = ""
+    with open( 'provision.sh', 'r' ) as f:
+        script = f.read()
+
+    result = replaceAll( script, {
+                                    '%agent.json%' : agent_config,
+                                    '%groupId%' : group
+                               })
+    if encode:
+        result = base64.b64encode( result )
+
+    return result
+
+def getGroupName( instance_type ):
+    return "%s-%d" % (instance_type, int( time.time() ) )
+
+def commandLaunch( parser ):
+    instance_types = load_instance_types()
+    parser.add_argument( '--type', required=True, help="The instance type to launch.",
+                         choices=instance_types )
+    parser.add_argument( '--price', required=True, type=float,help="The spot price to use for this group" )
+    parser.add_argument( '--count', required=True, type=int,help="The number of instances to launch" )
+    parser.add_argument( '--zone', required=True, help="The availability zone to launch in" )
+    parser.add_argument( '--image', default='ami-0d4cfd66', help="The image to use for this instance" )
+    parser.add_argument( '--key', default='scalyr-aws', help="The keypair name to use for this instance" )
+    parser.add_argument( '--security_group', default='sg-10012377', help="The security group" )
+    parser.add_argument( '--api_key', required=True,help="The Scalyr API key to use" )
+
+    args = parser.parse_args()
+
+    ec2 = boto3.client( 'ec2', region_name=REGION_NAME )
+
+    group = getGroupName( args.type )
+
+    agent_config = prepareAgentConfig( args.api_key, args.type, args.count, REGION_NAME, args.zone )
+    provision_script = prepareProvisionScript( agent_config, group )
+
+    instances = ec2.request_spot_instances(
+                                      SpotPrice=str(args.price),
+                                      InstanceCount=args.count,
+                                      Type='persistent',
+                                      LaunchSpecification={
+                                        'ImageId' : args.image,
+                                        'KeyName' : args.key,
+                                        'UserData': provision_script,
+                                        'InstanceType' : args.type,
+                                        'Placement' : {
+                                          'AvailabilityZone' : args.zone,
+                                        },
+                                        'IamInstanceProfile': {
+                                          'Name': 's3bench-provision'
+                                        },
+                                        'SecurityGroupIds': [args.security_group],
+                                      }
+                                      )
+    index = 0
+    requests = []
+    failed = {}
+    for instance in instances['SpotInstanceRequests']:
+        requests.append( instance['SpotInstanceRequestId'] )
+        try:
+            ec2.create_tags( Resources=[ instance['SpotInstanceRequestId'] ],
+                             Tags=[
+                                { 'Key': 'GroupId', 'Value': group },
+                                { 'Key': 'GroupIndex', 'Value': str(index) },
+                             ])
+        except:
+            failed[index] = instance
+
+        index += 1
+
+    for index, instance in failed:
+        try:
+            ec2.create_tags( Resources=[ instance['SpotInstanceRequestId'] ],
+                             Tags=[
+                                { 'Key': 'GroupId', 'Value': group },
+                                { 'Key': 'GroupIndex', 'Value': str(index) },
+                             ])
+        except:
+            print "Failed to set tag for spot instance: %s" % instance['SpotInstanceRequestId']
+
+
+    print "Launched.. waiting until running"
+    waiter = ec2.get_waiter('spot_instance_request_fulfilled')
+    waiter.wait( SpotInstanceRequestIds=requests)
+
+    print "Running. Group name is: ", group
+
+def commandListGroups( parser ):
+    instance_types = load_instance_types()
+
+    choices = instance_types[:].append( 'all' )
+    parser.add_argument( '--type', default='all', help="The instance type to query for (defaults to all).",
+                         choices=choices )
+    args = parser.parse_args()
+
+    if args.type != 'all':
+        instance_types = [ args.type ]
+
+
+    ec2 = boto3.client( 'ec2', region_name=REGION_NAME )
+
+    response = ec2.describe_spot_instance_requests( Filters=[
+        { 'Name' : 'state', 'Values': [ 'open', 'active' ] },
+    ])
+
+    groups = {}
+    for request in response['SpotInstanceRequests']:
+        if 'Tags' in request:
+            for tag in request['Tags']:
+                if tag['Key'] == 'GroupId':
+                    groups[tag['Value']] = True
+
+    for group,_ in groups.iteritems():
+        print group
+
+    print
+
+def commandKillGroup( parser ):
+    parser.add_argument( '--name', required=True, help="The name of the group to kill - use list-groups to find active groups" )
+    args = parser.parse_args()
+
+
+    ec2 = boto3.client( 'ec2', region_name=REGION_NAME )
+
+    response = ec2.describe_spot_instance_requests( Filters=[
+        { 'Name' : 'tag:GroupId', 'Values': [args.name] }
+    ])
+
+    instances = []
+    requests = []
+    for request in response['SpotInstanceRequests']:
+        requests.append( request['SpotInstanceRequestId'] )
+        if 'InstanceId' in request and request['InstanceId']:
+            instances.append( request['InstanceId'] )
+
+    if requests:
+        ec2.cancel_spot_instance_requests( SpotInstanceRequestIds=requests )
+
+    #message = "The s3benchmark group '%s' has been killed.\n\nCurrent time: %s\n\nNumber of instances currently running: %d\n" % (group, str( datetime.datetime.now().time() ), len( instances ))
+
+    #sendEmail( 'imron@imralsoftware.com', SCALYR_BENCHMARK_EMAIL, 's3Benchmark - Killing group %s' % group, message )
+
+    print "Waiting to shutdown..."
+    if instances:
+        ec2.terminate_instances( InstanceIds=instances )
+        waiter = ec2.get_waiter('instance_terminated')
+        waiter.wait( InstanceIds=instances )
+
+def sendEmail( to, sender, subject, message ):
+    msg = MIMEText( message )
+
+    msg['Subject'] = subject
+    msg['From'] = sender
+    msg['To'] = to
+
+    s = smtplib.SMTP('localhost')
+    s.sendmail(sender, [to], msg.as_string())
+    s.quit()
 
 if __name__ == '__main__':
     all_commands = {
-        'spot-price' : commandSpotPrice,
+        'launch' : commandLaunch,
+        'list-groups' : commandListGroups,
+        'kill-group' : commandKillGroup,
+        'spot-price' : commandSpotPrice
     }
 
     parser = argparse.ArgumentParser(description='Scalyr command-line tool for AWS benchmarking.')
