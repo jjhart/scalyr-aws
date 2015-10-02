@@ -175,6 +175,15 @@ def commandLaunch( parser ):
 
     group = getGroupName( args.type )
 
+    end_time = (datetime.datetime.today()).replace( tzinfo=pytz.utc )
+    start_time = end_time - datetime.timedelta( 0, 0, 1 )
+    history = ec2.describe_spot_price_history( StartTime=start_time, EndTime=end_time, InstanceTypes=[args.type],
+                                               AvailabilityZone=args.zone, ProductDescriptions=[ 'Linux/UNIX' ] )
+
+    current_price = Decimal( 0 )
+    for price in history['SpotPriceHistory']:
+        current_price = Decimal( price['SpotPrice'] )
+
     agent_config = prepareAgentConfig( args.scalyr_api_key, args.type, args.count, REGION_NAME, args.zone )
     provision_script = prepareProvisionScript( agent_config, group )
 
@@ -222,7 +231,9 @@ def commandLaunch( parser ):
         except:
             print "Failed to set tag for spot instance: %s" % instance['SpotInstanceRequestId']
 
+    message = "Launched new spot instance group: %s\n\nLaunch parameters:\n\ttype: %s\n\tinstances: %d\n\tprice per instance/hour: $%.2f\n\tregion: %s\n\tzone: %s\n\taws image: %s\n\tcurrent time: %s\n\testimated current spot price %s\n\nKill with:\n\t./scalyr-aws kill-group --name %s" % (group, args.type, args.count, args.price, REGION_NAME, args.zone, args.image, str( datetime.datetime.now() ), str( current_price ), group )
 
+    sendEmail( SCALYR_BENCHMARK_EMAIL, SCALYR_BENCHMARK_EMAIL, 's3Benchmark - Launched group %s' % group, message )
     print "Launched.. waiting until running"
     waiter = ec2.get_waiter('spot_instance_request_fulfilled')
     waiter.wait( SpotInstanceRequestIds=requests)
@@ -252,10 +263,15 @@ def commandListGroups( parser ):
         if 'Tags' in request:
             for tag in request['Tags']:
                 if tag['Key'] == 'GroupId':
-                    groups[tag['Value']] = True
+                    if tag['Value'] not in groups:
+                        groups[tag['Value']] = (0, request['CreateTime'])
+                    count, timestamp = groups[tag['Value']]
+                    groups[tag['Value']] = (count+1, timestamp)
 
-    for group,_ in groups.iteritems():
+    for group, (count, timestamp) in groups.iteritems():
         print group
+        print "    instances: %d" % count
+        print "    launched: %s" % str( timestamp )
 
     print
 
@@ -280,9 +296,9 @@ def commandKillGroup( parser ):
     if requests:
         ec2.cancel_spot_instance_requests( SpotInstanceRequestIds=requests )
 
-    #message = "The s3benchmark group '%s' has been killed.\n\nCurrent time: %s\n\nNumber of instances currently running: %d\n" % (group, str( datetime.datetime.now().time() ), len( instances ))
+    message = "The s3benchmark group '%s' has been killed.\n\nCurrent time: %s\n\nNumber of instances running when killed: %d\n" % (args.name, str( datetime.datetime.now() ), len( instances ))
 
-    #sendEmail( 'imron@imralsoftware.com', SCALYR_BENCHMARK_EMAIL, 's3Benchmark - Killing group %s' % group, message )
+    sendEmail( SCALYR_BENCHMARK_EMAIL, SCALYR_BENCHMARK_EMAIL, 's3Benchmark - Killing group %s' % args.name, message )
 
     print "Waiting to shutdown..."
     if instances:
