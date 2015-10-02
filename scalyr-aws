@@ -165,9 +165,9 @@ def commandLaunch( parser ):
     parser.add_argument( '--count', required=True, type=int,help="The number of instances to launch" )
     parser.add_argument( '--zone', required=True, help="The availability zone to launch in" )
     parser.add_argument( '--image', default='ami-0d4cfd66', help="The image to use for this instance" )
-    parser.add_argument( '--key', default='scalyr-aws', help="The keypair name to use for this instance" )
+    parser.add_argument( '--aws_key_pair', default='scalyr-aws', help="The keypair name to use for this instance" )
     parser.add_argument( '--security_group', default='sg-10012377', help="The security group" )
-    parser.add_argument( '--api_key', required=True,help="The Scalyr API key to use" )
+    parser.add_argument( '--scalyr_api_key', required=True,help="The Scalyr API key to use" )
 
     args = parser.parse_args()
 
@@ -175,7 +175,7 @@ def commandLaunch( parser ):
 
     group = getGroupName( args.type )
 
-    agent_config = prepareAgentConfig( args.api_key, args.type, args.count, REGION_NAME, args.zone )
+    agent_config = prepareAgentConfig( args.scalyr_api_key, args.type, args.count, REGION_NAME, args.zone )
     provision_script = prepareProvisionScript( agent_config, group )
 
     instances = ec2.request_spot_instances(
@@ -184,7 +184,7 @@ def commandLaunch( parser ):
                                       Type='persistent',
                                       LaunchSpecification={
                                         'ImageId' : args.image,
-                                        'KeyName' : args.key,
+                                        'KeyName' : args.aws_key_pair,
                                         'UserData': provision_script,
                                         'InstanceType' : args.type,
                                         'Placement' : {
