@@ -9,8 +9,10 @@ import datetime
 from decimal import Decimal
 from email.mime.text import MIMEText
 import json
+import os
 import pytz
 import smtplib
+import subprocess
 import sys
 import time
 
@@ -163,6 +165,7 @@ def commandLaunch( parser ):
                          choices=instance_types )
     parser.add_argument( '--price', required=True, type=float,help="The spot price to use for this group" )
     parser.add_argument( '--count', required=True, type=int,help="The number of instances to launch" )
+    parser.add_argument( '--hours', default=0,type=int,help="the number of hours to run the group for" )
     parser.add_argument( '--zone', required=True, help="The availability zone to launch in" )
     parser.add_argument( '--image', default='ami-0d4cfd66', help="The image to use for this instance" )
     parser.add_argument( '--aws_key_pair', default='scalyr-aws', help="The keypair name to use for this instance" )
@@ -234,9 +237,13 @@ def commandLaunch( parser ):
     message = "Launched new spot instance group: %s\n\nLaunch parameters:\n\ttype: %s\n\tinstances: %d\n\tprice per instance/hour: $%.2f\n\tregion: %s\n\tzone: %s\n\taws image: %s\n\tcurrent time: %s\n\testimated current spot price %s\n\nKill with:\n\t./scalyr-aws kill-group --name %s" % (group, args.type, args.count, args.price, REGION_NAME, args.zone, args.image, str( datetime.datetime.now() ), str( current_price ), group )
 
     sendEmail( SCALYR_BENCHMARK_EMAIL, SCALYR_BENCHMARK_EMAIL, 's3Benchmark - Launched group %s' % group, message )
-    print "Launched.. waiting until running"
-    waiter = ec2.get_waiter('spot_instance_request_fulfilled')
-    waiter.wait( SpotInstanceRequestIds=requests)
+
+    if args.hours != 0:
+        current_file = os.path.abspath( __file__ )
+        #give 5 minutes extra, to allow for startup time
+        minutes = (args.hours * 60) + 5
+        command = 'echo "%s kill-group --name %s" | at now + %d minutes' % ( current_file, group, minutes )
+        subprocess.Popen( command, shell=True )
 
     print "Running. Group name is: ", group
 
@@ -268,12 +275,15 @@ def commandListGroups( parser ):
                     count, timestamp = groups[tag['Value']]
                     groups[tag['Value']] = (count+1, timestamp)
 
-    for group, (count, timestamp) in groups.iteritems():
-        print group
-        print "    instances: %d" % count
-        print "    launched: %s" % str( timestamp )
+   
+    if groups:
+        print "The following s3benchmarking groups are active"
+        for group, (count, timestamp) in groups.iteritems():
+            print group
+            print "    instances: %d" % count
+            print "    launched: %s" % str( timestamp )
 
-    print
+        print
 
 def commandKillGroup( parser ):
     parser.add_argument( '--name', required=True, help="The name of the group to kill - use list-groups to find active groups" )
