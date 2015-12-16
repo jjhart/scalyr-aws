@@ -1,7 +1,5 @@
 s3/install-scalyr-agent-2.sh
-s3/s3bench-1.0.3-jar-with-dependencies.jar
-s3/s3bench-1.0.4-jar-with-dependencies.jar
-s3/s3bench-1.0.5-jar-with-dependencies.jar
+s3/s3bench-1.0.*
 temp
 tmp/
 

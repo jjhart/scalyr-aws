@@ -142,15 +142,17 @@ def prepareAgentConfig( api_key, instance_type, count, region, zone ):
 
     return replaceAll( content, items )
 
-def prepareProvisionScript( agent_config, group, encode=True ):
+def prepareProvisionScript( agent_config, group, sizes_and_threads, encode=True ):
     script = ""
     with open( 'provision.sh', 'r' ) as f:
         script = f.read()
 
     result = replaceAll( script, {
                                     '%agent.json%' : agent_config,
-                                    '%groupId%' : group
+                                    '%groupId%' : group,
+                                    '%sizes_and_threads%' : sizes_and_threads
                                })
+
     if encode:
         result = base64.b64encode( result )
 
@@ -171,6 +173,7 @@ def commandLaunch( parser ):
     parser.add_argument( '--aws_key_pair', default='scalyr-aws', help="The keypair name to use for this instance" )
     parser.add_argument( '--security_group', default='sg-10012377', help="The security group" )
     parser.add_argument( '--scalyr_api_key', required=True,help="The Scalyr API key to use" )
+    parser.add_argument( '--sizes_and_threads', default='', help="Comma-delimited list of objects sizes and thread counts for read operations" )
 
     args = parser.parse_args()
 
@@ -188,7 +191,7 @@ def commandLaunch( parser ):
         current_price = Decimal( price['SpotPrice'] )
 
     agent_config = prepareAgentConfig( args.scalyr_api_key, args.type, args.count, REGION_NAME, args.zone )
-    provision_script = prepareProvisionScript( agent_config, group )
+    provision_script = prepareProvisionScript( agent_config, group, args.sizes_and_threads )
 
     instances = ec2.request_spot_instances(
                                       SpotPrice=str(args.price),

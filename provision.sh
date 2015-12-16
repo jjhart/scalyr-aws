@@ -45,7 +45,7 @@ cd "$BASE_DIR"
 
 aws s3 cp --sse s3://com.scalyr.s3bench/run.sh .
 aws s3 cp --sse s3://com.scalyr.s3bench/log4j2.xml .
-aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.5-jar-with-dependencies.jar .
+aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.6-jar-with-dependencies.jar .
 aws s3 cp --sse s3://com.scalyr.s3bench/keepalive.sh .
 
 chmod u+x $BASE_DIR/run.sh
@@ -59,6 +59,7 @@ sed -i "s/%minHeap%/$MIN_HEAP/" $BASE_DIR/run.sh
 sed -i "s/%maxHeap%/$MAX_HEAP/" $BASE_DIR/run.sh
 
 echo "serverHost = $SERVER_HOST" > $BASE_DIR/instance.properties
+echo "sizesAndThreads = '%sizes_and_threads%'" >> $BASE_DIR/instance.properties
 
 chown -R ec2-user:ec2-user /home/ec2-user
 
