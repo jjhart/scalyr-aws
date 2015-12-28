@@ -3,6 +3,10 @@
 mkdir -p /tmp/provision
 cd /tmp/provision
 
+# upgrade to java 1.8 if not already; using hard path as found on CNC server post-upgrade
+java -version | fgrep -q 'build 1.8' || yes | sudo yum install java-1.8.0
+java -version | fgrep -q 'build 1.8' || sudo /usr/sbin/alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+
 aws s3 cp --sse s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
 
