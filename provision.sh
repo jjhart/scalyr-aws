@@ -45,7 +45,7 @@ cd "$BASE_DIR"
 
 aws s3 cp --sse s3://com.scalyr.s3bench/run.sh .
 aws s3 cp --sse s3://com.scalyr.s3bench/log4j2.xml .
-aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.6-jar-with-dependencies.jar .
+aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.8-jar-with-dependencies.jar .
 aws s3 cp --sse s3://com.scalyr.s3bench/keepalive.sh .
 
 chmod u+x $BASE_DIR/run.sh
