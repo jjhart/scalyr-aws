@@ -7,11 +7,12 @@ cd /tmp/provision
 install_java_1_8() {
 	echo $(date) ' ... checking for java 1.8'
 	java -version 2>&1 | fgrep -q 'build 1.8' && echo 'Java 1.8 found' && return 0
-	yes | sudo yum install java-1.8.0
-	sudo /usr/sbin/alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
+	echo 'installing java 1.8'
+	yes | yum install java-1.8.0
+	/usr/sbin/alternatives --set java /usr/lib/jvm/jre-1.8.0-openjdk.x86_64/bin/java
 	}
 
-install_java_1_8 >> install.java.log
+install_java_1_8 >> install.java.log 2>&1
 
 aws s3 cp --sse s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
