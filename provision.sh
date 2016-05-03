@@ -14,7 +14,7 @@ install_java_1_8() {
 
 install_java_1_8 >> install.java.log 2>&1
 
-aws s3 cp --sse s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
+aws s3 cp s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
 
 read -d '' AGENT_JSON << EOF
@@ -54,10 +54,10 @@ mkdir -p "$BASE_DIR"
 
 cd "$BASE_DIR"
 
-aws s3 cp --sse s3://com.scalyr.s3bench/run.sh .
-aws s3 cp --sse s3://com.scalyr.s3bench/log4j2.xml .
-aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
-aws s3 cp --sse s3://com.scalyr.s3bench/keepalive.sh .
+aws s3 cp s3://com.scalyr.s3bench/run.sh .
+aws s3 cp s3://com.scalyr.s3bench/log4j2.xml .
+aws s3 cp s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
+aws s3 cp s3://com.scalyr.s3bench/keepalive.sh .
 
 chmod u+x $BASE_DIR/run.sh
 chmod u+x $BASE_DIR/keepalive.sh
