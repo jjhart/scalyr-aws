@@ -30,7 +30,7 @@ while (1) {
 	system("mke2fs -F -F -j $dev") and die("Error creating filesystem on $dev: $!");
 	system("mount $dev $MNT") and die("Error mounting $dev on $MNT: $!");
 
-	fs_writes($MNT, 100); # 100 = how many 1GB files to write?
+	fs_writes($MNT, 400); # 100 = how many 1GB files to write?
 	timed('fs-sync', sub { system('sync') });
 	fs_reads($MNT); 
 	}
@@ -58,7 +58,7 @@ sub block_read {
 sub fs_writes {
 	my ($dir, $fileCount) = @_;
 	my $fmt = reformatter('fs-write', 0);
-	map { refmt_pipe($fmt, "dd bs=1M if=/dev/zero of=${dir}/dd.$_.out count=1000 2>&1") } (1..$fileCount);
+	map { refmt_pipe($fmt, "dd bs=1M if=/dev/zero of=${dir}/dd.$_.out count=1024 2>&1") } (1..$fileCount);
 	}
 
 sub fs_reads {
