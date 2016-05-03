@@ -9,9 +9,11 @@ $| = 1; # turn off buffering
 
 my ($dev) = @ARGV;
 $dev ||= '/dev/sdb';
-my $mnt = '/media/instance-test';
 
-system("umount /media/ephemeral0 $mnt");
+
+my ($VERSION, $MNT) = qw(2 /media/instance-test);
+
+system("umount /media/ephemeral0 $MNT");
 
 only_once("$ENV{HOME}/prewarm-complete", sub {
 	block_write($dev, 'prewarm-write');
@@ -20,17 +22,17 @@ only_once("$ENV{HOME}/prewarm-complete", sub {
 
 
 while (1) {
-	system("umount $mnt");  
+	system("umount $MNT");  
 	block_write($dev);
 	block_read($dev);
 
-	-d $mnt or mkdir($mnt);
+	-d $MNT or mkdir($MNT);
 	system("mke2fs -F -F -j $dev") and die("Error creating filesystem on $dev: $!");
-	system("mount $dev $mnt") and die("Error mounting $dev on $mnt: $!");
+	system("mount $dev $MNT") and die("Error mounting $dev on $MNT: $!");
 
-	fs_writes($mnt, 100); # 100 = how many 1GB files to write?
+	fs_writes($MNT, 100); # 100 = how many 1GB files to write?
 	timed('fs-sync', sub { system('sync') });
-	fs_reads($mnt); 
+	fs_reads($MNT); 
 	}
 
 exit(0);
@@ -74,7 +76,7 @@ sub timed {
 	my $tm = time();
 	$f->();
 	$tm = time() - $tm;
-	printf("%s label=%s tm=%d\n", tm8601(), $label, $tm);
+	printf("%s version=%s label=%s tm=%d\n", tm8601(), $VERSION, $label, $tm);
 	}
 
 sub only_once {
@@ -143,8 +145,8 @@ sub reformatter {
 		$aggRate = mbs($aggBytes, $aggTm);
 		$curRate = mbs($curBytes, $curTm);
 
-		printf("%s label=%s aggBytes=%d aggTm=%.2f aggMBs=%.2f curBytes=%d curTm=%.2f curMBs=%.2f\n"
-			,tm8601(), $label
+		printf("%s version=%s label=%s aggBytes=%d aggTm=%.2f aggMBs=%.2f curBytes=%d curTm=%.2f curMBs=%.2f\n"
+			,tm8601(), $VERSION, $label
 			,$aggBytes, $aggTm, $aggRate
 			,$curBytes, $curTm, $curRate
 			);
