@@ -206,7 +206,7 @@ def commandLaunch( parser ):
                                           'AvailabilityZone' : args.zone,
                                         },
 																				'BlockDeviceMappings' : [
-																					 { 'DeviceName': '/dev/xvda', 'Ebs' : { 'DeleteOnTermination' : true, 'VolumeSize' : 8 } },
+																					 { 'DeviceName': '/dev/xvda', 'Ebs' : { 'DeleteOnTermination' : True, 'VolumeSize' : 8 } },
 																					 { 'DeviceName': '/dev/sdb' , 'VirtualName' : 'ephemeral0' }
 																				],
                                         'IamInstanceProfile': {
