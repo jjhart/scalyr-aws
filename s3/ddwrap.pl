@@ -17,7 +17,7 @@ system("umount /media/ephemeral0 $MNT");
 
 only_once("$ENV{HOME}/prewarm-complete", sub {
 	block_write($dev, 'prewarm-write');
-	block_read($dev, 'prewarm-read');
+	# block_read($dev, 'prewarm-read');  # unnecessary: after prewarm-write all reads are stable
 	});
 
 
@@ -30,8 +30,9 @@ while (1) {
 	system("mke2fs -F -F -j $dev") and die("Error creating filesystem on $dev: $!");
 	system("mount $dev $MNT") and die("Error mounting $dev on $MNT: $!");
 
-	fs_writes($MNT, 400); # 100 = how many 1GB files to write?
-	timed('fs-sync', sub { system('sync') });
+	fs_writes($MNT, 400); # tried to write 400 1GiB files
+	timed('fs-sync', sub { system('sync') and die("Error syncing filesystem: $!") });
+	timed('fs-drop-caches', sub { system('echo 3 > /proc/sys/vm/drop_caches') and die("Error dropping caches: $!"); });
 	fs_reads($MNT); 
 	}
 
@@ -46,31 +47,55 @@ exit(0);
 sub block_write {
 	my ($of, $label) = @_;
 	my $fmt = reformatter($label || 'block-write', 1);
-	refmt_pipe($fmt, "dd bs=1M if=/dev/zero of=$of 2>&1", \&ping_long_dd);
+	refmt_pipe($fmt, dd('w', $of), \&ping_long_dd);
 	}
 
 sub block_read {
 	my ($if, $label) = @_;
 	my $fmt = reformatter($label || 'block-read', 1);
-	refmt_pipe($fmt, "dd bs=1M if=$if of=/dev/null 2>&1", \&ping_long_dd);
+	refmt_pipe($fmt, dd('r', $if), \&ping_long_dd);
 	}
 
 sub fs_writes {
 	my ($dir, $fileCount) = @_;
 	my $fmt = reformatter('fs-write', 0);
-	map { refmt_pipe($fmt, "dd bs=1M if=/dev/zero of=${dir}/dd.$_.out count=1024 2>&1") } (1..$fileCount);
+	map { refmt_pipe($fmt, dd('w', "${dir}/dd.$_.out", 'count=1024')) } (1..$fileCount);
 	}
 
 sub fs_reads {
 	my ($dir) = @_;
 	my $fmt = reformatter('fs-read', 0);
-	map { -s and refmt_pipe($fmt, "dd bs=1M if=$_ of=/dev/null 2>&1") } (<$dir/dd.*.out>);
+	map { -s and refmt_pipe($fmt, dd('r', $_)) } (<$dir/dd.*.out>);
 	}
 
 
 #--------------------------------------------------------------------------------
 # helpers
 #--------------------------------------------------------------------------------
+
+# Generate our desired dd command for 'r' or 'w' modes
+#
+# Flags used:
+#
+# Writing:
+#   conv=fsync   : "Synchronize output data and metadata just before finishing. This forces a physical write of output data and metadata."
+#   oflag=dsync  : "Use synchronized I/O for data. For the output file, this forces a physical write of output data on each write ... metadata is not necessarily synchronized"
+#
+# Reading:
+#   iflag=direct : "use direct I/O for data, avoiding the buffer cache"
+#
+# So, on write, we sync after writing each block (of size=1M) *and* at the end of the entire operation (for metadata sync)
+# This sync-after-each-MB pattern is most closely aligned with our anticipated use
+sub dd {
+	my ($rw, $file, $opts) = (@_, '');
+	$opts .= ' iflag=direct' if ($rw eq 'r' && $file !~ m~/dev/~);  # flag not valid for block device reads
+	$rw eq 'r'
+		? "dd bs=1MiB if=$file $opts of=/dev/null 2>&1"
+		: "dd bs=1MiB of=$file $opts if=/dev/zero oflag=dsync conv=fsync 2>&1";
+	}
+
+
+
 sub timed {
 	my ($label, $f) = @_;
 	my $tm = time();
@@ -142,10 +167,10 @@ sub reformatter {
 
 		return 1 if ($curBytes == 0 && $curTm < 1); # final summary line can simply repeat previous
 
-		$aggRate = mbs($aggBytes, $aggTm);
-		$curRate = mbs($curBytes, $curTm);
+		$aggRate = mibs($aggBytes, $aggTm);
+		$curRate = mibs($curBytes, $curTm);
 
-		printf("%s version=%s label=%s aggBytes=%d aggTm=%.2f aggMBs=%.2f curBytes=%d curTm=%.2f curMBs=%.2f\n"
+		printf("%s version=%s label=%s aggBytes=%d aggTm=%.2f aggMiBs=%.2f curBytes=%d curTm=%.2f curMiBs=%.2f\n"
 			,tm8601(), $VERSION, $label
 			,$aggBytes, $aggTm, $aggRate
 			,$curBytes, $curTm, $curRate
@@ -159,8 +184,7 @@ sub tm8601 {
 	strftime("%Y-%m-%dT%H:%M:%S+00:00", gmtime());
 	}
 
-# SI MBs/
-sub mbs {
+sub mibs {
 	my ($bytes, $tm) = @_;
-	$bytes / ($tm*1000*1000);	
+	$bytes / ($tm*1024*1024);	
 	}
