@@ -205,6 +205,10 @@ def commandLaunch( parser ):
                                         'Placement' : {
                                           'AvailabilityZone' : args.zone,
                                         },
+																				'BlockDeviceMappings' : [
+																					 { 'DeviceName': '/dev/xvda', 'Ebs' : { 'DeleteOnTermination' : true, 'VolumeSize' : 8 } },
+																					 { 'DeviceName': '/dev/sdb' , 'VirtualName' : 'ephemeral0' }
+																				],
                                         'IamInstanceProfile': {
                                           'Name': 's3bench-provision'
                                         },
