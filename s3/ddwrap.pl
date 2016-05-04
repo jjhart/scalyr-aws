@@ -11,7 +11,7 @@ my ($dev) = @ARGV;
 $dev ||= '/dev/sdb';
 
 
-my ($VERSION, $MNT) = qw(3 /media/instance-test);
+my ($VERSION, $MNT) = qw(4 /media/instance-test);
 
 system("umount /media/ephemeral0 $MNT");
 
