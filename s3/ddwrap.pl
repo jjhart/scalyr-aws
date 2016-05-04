@@ -11,7 +11,7 @@ my ($dev) = @ARGV;
 $dev ||= '/dev/sdb';
 
 
-my ($VERSION, $MNT) = qw(5 /media/instance-test);
+my ($VERSION, $MNT) = qw(6 /media/instance-test);
 
 system("umount /media/ephemeral0 $MNT");
 
@@ -48,24 +48,28 @@ sub block_write {
 	my ($of, $label) = @_;
 	my $fmt = reformatter($label || 'block-write', 1);
 	refmt_pipe($fmt, dd('w', $of), \&ping_long_dd);
+	$fmt->(); # print final stats
 	}
 
 sub block_read {
 	my ($if, $label) = @_;
 	my $fmt = reformatter($label || 'block-read', 1);
 	refmt_pipe($fmt, dd('r', $if), \&ping_long_dd);
+	$fmt->(); # print final stats
 	}
 
 sub fs_writes {
 	my ($dir, $fileCount) = @_;
 	my $fmt = reformatter('fs-write', 0);
 	map { refmt_pipe($fmt, dd('w', sprintf("%s/dd.%03d.out", $dir, $_), 'count=1024')) } (1..$fileCount);
+	$fmt->(); # print final stats
 	}
 
 sub fs_reads {
 	my ($dir) = @_;
 	my $fmt = reformatter('fs-read', 0);
 	map { -s and refmt_pipe($fmt, dd('r', $_)) } (<$dir/dd.*.out>);
+	$fmt->(); # print final stats
 	}
 
 
@@ -141,10 +145,15 @@ sub refmt_pipe {
 
 sub reformatter {
 	my ($label, $longwrite) = @_;
-	my ($aggBytes, $aggTm, $aggRate) = (0, 0);
-	my ($curBytes, $curTm, $curRate) = (0, 0);
+	my ($agg, $cur) = ({ bytes => 0, tm => 0}, { bytes => 0, tm => 0 });
 	
 	return sub {
+		# sentinel: empty input list input means "just dump current 'agg' state as 'total'"
+		@_ or return printf("%s version=%s label=%s totalBytes=%d totalTm=%.2f totalMiBs=%.2f\n"
+			,tm8601(), $VERSION, $label
+			,$agg->{bytes}, $agg->{tm}, mibs($agg)
+			);
+
 		local ($_) = @_;
 
 		return 0 if /records (in|out)/;
@@ -155,25 +164,24 @@ sub reformatter {
 			or return print("unrecognized line: $_"); # will return 1
 
 		if ($longwrite) {                      # getting overall stats for one long write; must calculate current rate
-			$curBytes = $bytes - $aggBytes;
-			$curTm    = $tm    - $aggTm;
-			($aggBytes, $aggTm) = ($bytes, $tm);
+			$cur->{bytes} = $bytes - $agg->{bytes};
+			$cur->{tm}    = $tm    - $agg->{tm};
+			$agg->{bytes} = $bytes;
+			$agg->{tm}    = $tm;
 			}
 		else {                                 # getting summary info for N separate writes; must calculate overall stats
-			$aggBytes += $bytes;
-			$aggTm    += $tm;
-			($curBytes, $curTm) = ($bytes, $tm);
+			$agg->{bytes} += $bytes;
+			$agg->{tm}    += $tm;
+			$cur->{bytes}  = $bytes;
+			$cur->{tm}     = $tm;
 			}
 
-		return 1 if ($curBytes == 0 && $curTm < 1); # final summary line can simply repeat previous
-
-		$aggRate = mibs($aggBytes, $aggTm);
-		$curRate = mibs($curBytes, $curTm);
+		return 1 if ($cur->{bytes} == 0 && $cur->{tm} < 1); # final summary line can simply repeat previous
 
 		printf("%s version=%s label=%s aggBytes=%d aggTm=%.2f aggMiBs=%.2f curBytes=%d curTm=%.2f curMiBs=%.2f\n"
 			,tm8601(), $VERSION, $label
-			,$aggBytes, $aggTm, $aggRate
-			,$curBytes, $curTm, $curRate
+			,$agg->{bytes}, $agg->{tm}, mibs($agg)
+			,$cur->{bytes}, $cur->{tm}, mibs($cur)
 			);
 
 		return 1;
@@ -185,6 +193,7 @@ sub tm8601 {
 	}
 
 sub mibs {
-	my ($bytes, $tm) = @_;
-	$bytes / ($tm*1024*1024);	
+	my ($hash) = @_;
+	return 0 if $hash->{tm} == 0;
+	$hash->{bytes} / ($hash->{tm}*1024*1024);	
 	}
