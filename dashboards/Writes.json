@@ -1,0 +1,141 @@
+{
+   graphWidth: 1000
+  ,parameters: [
+    { name: "Phase", values: [
+   		 { label: "*", value: "" }
+			,{ label: "prewarm-write" , value: "$label = 'prewarm-write'" }
+			,{ label: "block-write"   , value: "$label = 'block-write'"   }
+			,{ label: "block-read"    , value: "$label = 'block-read'"    }
+			,{ label: "fs-write"      , value: "$label = 'fs-write'"      }
+			,{ label: "fs-read"       , value: "$label = 'fs-read'"       }
+			,{ label: "*-write"       , value: "$label contains '-write'" }
+			,{ label: "*-read"        , value: "$label contains '-read'"  }
+			,{ label: "{prewarm,block}-write" , value: "($label = 'prewarm-write' || $label = 'block-write')" }
+			,{ label: "{fs,block}-write"      , value: "($label = 'fs-write' || $label = 'block-write')" }
+			]
+		}
+   ,{
+      name: "Version", values: [
+       { label: "3", value: "$version = 3"},  // note we changed from "aggMBs" to "aggMiBs" in v3, so <= v2 cannot use this page
+       { label: "4", value: "$version = 4"},
+      ]
+    }
+   ,{
+      name: "Instance", values: [
+   		 { label: "*", value: "" },
+       { label: "0", value: "$serverHost matches '-0$'"},
+       { label: "1", value: "$serverHost matches '-1$'"},
+       { label: "2", value: "$serverHost matches '-2$'"},
+       { label: "3", value: "$serverHost matches '-3$'"},
+      ]
+    }
+   ,{
+      name: "serverHost", values: [
+        { label: "*", value: "*"},
+        "__serverHostsQ"
+      ]
+    }
+	]
+  ,graphs: [
+     {
+			 label: "i2.4xlarge performance by instance"
+			,plots: [ 
+				 { facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 0 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 1 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 2 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 3 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 0 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 1 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 2 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 3 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 0 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 1 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 2 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 3 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 0 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 1 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 2 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 3 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 0 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 1 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 2 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='i2.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 3 fs-read"       }
+				]
+			}
+    ,{
+			 label: "c3.8xlarge performance by instance"
+			,plots: [ 
+				 { facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 0 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 1 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 2 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 3 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 0 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 1 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 2 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 3 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 0 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 1 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 2 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 3 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 0 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 1 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 2 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 3 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 0 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 1 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 2 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.8xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 3 fs-read"       }
+				]
+			}
+    ,{
+			 label: "c3.4xlarge performance by instance"
+			,plots: [ 
+				 { facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 0 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 1 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 2 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 3 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 0 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 1 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 2 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 3 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 0 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 1 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 2 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 3 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 0 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 1 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 2 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 3 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 0 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 1 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 2 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='c3.4xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 3 fs-read"       }
+				]
+			}
+    ,{
+			 label: "m3.2xlarge performance by instance"
+			,plots: [ 
+				 { facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 0 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 1 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 2 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 3 prewarm-write" }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 0 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 1 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 2 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-write'"  , label: "instance 3 block-write"   }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 0 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 1 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 2 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='block-read'"   , label: "instance 3 block-read"    }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 0 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 1 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 2 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-write'"     , label: "instance 3 fs-write"      }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-0$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 0 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-1$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 1 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-2$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 2 fs-read"       }
+				,{ facet: "aggMiBs", filter: "$instanceType='m3.2xlarge' $serverHost matches '-3$' #Phase# #Version# #Instance# $label='fs-read'"      , label: "instance 3 fs-read"       }
+				]
+			}
+		]
+	}

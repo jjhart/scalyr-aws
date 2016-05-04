@@ -11,13 +11,13 @@ my ($dev) = @ARGV;
 $dev ||= '/dev/sdb';
 
 
-my ($VERSION, $MNT) = qw(4 /media/instance-test);
+my ($VERSION, $MNT) = qw(5 /media/instance-test);
 
 system("umount /media/ephemeral0 $MNT");
 
 only_once("$ENV{HOME}/prewarm-complete", sub {
 	block_write($dev, 'prewarm-write');
-	# block_read($dev, 'prewarm-read');  # unnecessary: after prewarm-write all reads are stable
+	block_read($dev, 'prewarm-read');  # after prewarm-write all reads are stable ... but reinstating in case it helps next block write
 	});
 
 
