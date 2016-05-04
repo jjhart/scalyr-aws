@@ -123,7 +123,7 @@ sub touch {
 
 sub ping_long_dd {
 	my ($pid) = @_;
-	sleep(1);
+	sleep(10);
 	kill('USR1', $pid);
 	}
 
