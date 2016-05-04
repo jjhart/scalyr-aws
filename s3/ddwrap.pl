@@ -7,31 +7,29 @@ use POSIX qw(strftime);
 $> and die("Must run as root, quitting\n");
 $| = 1; # turn off buffering
 
-my ($dev) = @ARGV;
-$dev ||= '/dev/sdb';
+my (@DEVS) = grep { -e } (</dev/sd{b,c,d,e}>);
+my ($VERSION, $DEV, $MNT) = qw(7 /dev/md0 /media/instance-test);
 
+maybe_create_md0($DEV, @DEVS);
 
-my ($VERSION, $MNT) = qw(6 /media/instance-test);
+# in case any are mounted
+map { -e and system("umount $_") } ($MNT, map { "/media/ephemeral$_" } qw(0..3));
 
-system("umount /media/ephemeral0 $MNT");
-
-only_once("$ENV{HOME}/prewarm-complete", sub {
-	block_write($dev, 'prewarm-write');
-	block_read($dev, 'prewarm-read');  # after prewarm-write all reads are stable ... but reinstating in case it helps next block write
+only_once("prewarm-complete", sub {
+	block_write($DEV, 'prewarm-write');
+	block_read($DEV, 'prewarm-read');  # after prewarm-write all reads are stable ... but reinstating in case it helps next block write
 	});
 
 
 while (1) {
 	system("umount $MNT");  
-	block_write($dev);
-	block_read($dev);
+	block_write($DEV);
+	block_read($DEV);
 
-	-d $MNT or mkdir($MNT);
-	system("mke2fs -F -F -j $dev") and die("Error creating filesystem on $dev: $!");
-	system("mount $dev $MNT") and die("Error mounting $dev on $MNT: $!");
+	mkfs($DEV, $MNT);
 
 	fs_writes($MNT, 400); # tried to write 400 1GiB files
-	timed('fs-sync', sub { system('sync') and die("Error syncing filesystem: $!") });
+	timed('fs-sync', sub { system('sync') and die("Error syncing filesystems: $!") });
 	timed('fs-drop-caches', sub { system('echo 3 > /proc/sys/vm/drop_caches') and die("Error dropping caches: $!"); });
 	fs_reads($MNT); 
 	}
@@ -77,6 +75,25 @@ sub fs_reads {
 # helpers
 #--------------------------------------------------------------------------------
 
+sub maybe_create_md0 {
+ 	my ($create, @from) = @_;
+
+	print("$create already exists\n"), return if -e $create;
+	printf("Creating %s from %s\n", $create, join(', ', @from));
+
+	system(sprintf('mdadm --create %s --level=0 -c256 --raid-devices=%d %s', $create, scalar(@from), join(' ', @from)))
+		and die("Could not create $create: $!");
+	}
+
+sub mkfs {
+	my ($dev, $mnt) = @_;
+	-d $mnt or mkdir($mnt);
+	map { system($_) and die("Error running '$_': $!") } (
+		 "mkfs -t ext4 $dev"
+		,"mount -t ext4 -o noatime $dev $mnt"
+		);
+	}
+
 # Generate our desired dd command for 'r' or 'w' modes
 #
 # Flags used:
@@ -109,8 +126,9 @@ sub timed {
 	}
 
 sub only_once {
-	my ($gatefile, $f) = @_;
-	print("$gatefile exists, skipping gated step\n"), return if -f $gatefile;
+	my ($gate, $f) = @_;
+	my $gatefile = $ENV{HOME} . '/' . $gate;
+	print("$gate already done, skipping\n"), return if -f $gatefile;
 	$f->();
 	touch($gatefile);
 	}
