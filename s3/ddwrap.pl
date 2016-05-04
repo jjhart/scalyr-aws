@@ -59,7 +59,7 @@ sub block_read {
 sub fs_writes {
 	my ($dir, $fileCount) = @_;
 	my $fmt = reformatter('fs-write', 0);
-	map { refmt_pipe($fmt, dd('w', "${dir}/dd.$_.out", 'count=1024')) } (1..$fileCount);
+	map { refmt_pipe($fmt, dd('w', sprintf("%s/dd.%03d.out", $dir, $_), 'count=1024')) } (1..$fileCount);
 	}
 
 sub fs_reads {
