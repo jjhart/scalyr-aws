@@ -207,7 +207,10 @@ def commandLaunch( parser ):
                                         },
 																				'BlockDeviceMappings' : [
 																					 { 'DeviceName': '/dev/xvda', 'Ebs' : { 'DeleteOnTermination' : True, 'VolumeSize' : 8 } },
-																					 { 'DeviceName': '/dev/sdb' , 'VirtualName' : 'ephemeral0' }
+																					 { 'DeviceName': '/dev/sdb' , 'VirtualName' : 'ephemeral0' },
+																					 { 'DeviceName': '/dev/sdc' , 'VirtualName' : 'ephemeral1' },
+																					 { 'DeviceName': '/dev/sdd' , 'VirtualName' : 'ephemeral2' },
+																					 { 'DeviceName': '/dev/sde' , 'VirtualName' : 'ephemeral3' }
 																				],
                                         'IamInstanceProfile': {
                                           'Name': 's3bench-provision'
