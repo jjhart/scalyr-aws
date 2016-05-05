@@ -30,6 +30,7 @@
        { label: "4", value: "$version = 4"},
        { label: "5", value: "$version = 5"},
        { label: "7", value: "$version = 7"},
+       { label: "8", value: "$version = 8"},
       ]
     }
    ,{
@@ -50,19 +51,19 @@
 	]
   ,graphs: [
      {
-      title: "MB/s by instance type x phase",
+      title: "Total MB/s by instance type x phase (v8+ only)"
       keys: [
         { label: "Instance Type", attribute: "instanceType" },
         { label: "Phase", attribute: "label" },
       ],
       columns: [
-				 { label: "MB/s mean"   , filter: "$serverHost=#serverHost# #InstanceType# #Phase# #Version# $logfile='/var/log/s3bench/s3bench.log' " , function: "mean" , attribute: "curMiBs" }
-				,{ label: "Count"       , filter: "$serverHost=#serverHost# #InstanceType# #Phase# #Version# $logfile='/var/log/s3bench/s3bench.log' " , function: "count"                       }
+				 { label: "MB/s mean"   , filter: "$serverHost=#serverHost# #InstanceType# #Phase# #Version# $logfile='/var/log/s3bench/s3bench.log' " , function: "mean" , attribute: "totalMiBs" }
+				,{ label: "Count"       , filter: "$serverHost=#serverHost# #InstanceType# #Phase# #Version# $logfile='/var/log/s3bench/s3bench.log' $totalMiBs=*" , function: "count" }
       ],
       sort: [ "-MB/s mean" ]
     }
     ,{
-			 label: "Aggregate MiBs By instance x phase (only useful when filtering by instance type)"
+			 label: "Running average MiBs By instance x phase (only useful when filtering by instance type)"
 			,plots: [ 
 				 { facet: "aggMiBs", filter: "$serverHost matches '-0$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 0 prewarm-write" }
 				,{ facet: "aggMiBs", filter: "$serverHost matches '-1$' #Phase# #Version# #Instance# $label='prewarm-write'", label: "instance 1 prewarm-write" }

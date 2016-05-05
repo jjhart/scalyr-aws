@@ -8,7 +8,7 @@ $> and die("Must run as root, quitting\n");
 $| = 1; # turn off buffering
 
 my (@DEVS) = grep { -e } (</dev/sd{b,c,d,e}>);
-my ($VERSION, $DEV, $MNT) = qw(7 /dev/md0 /media/instance-test);
+my ($VERSION, $DEV, $MNT) = qw(8 /dev/md0 /media/instance-test);
 
 # in case any are mounted
 map { -e and system("umount $_") } ($MNT, map { "/media/ephemeral$_" } (0..3));
