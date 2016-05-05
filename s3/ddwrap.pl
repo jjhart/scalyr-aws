@@ -10,10 +10,10 @@ $| = 1; # turn off buffering
 my (@DEVS) = grep { -e } (</dev/sd{b,c,d,e}>);
 my ($VERSION, $DEV, $MNT) = qw(7 /dev/md0 /media/instance-test);
 
-maybe_create_md0($DEV, @DEVS);
-
 # in case any are mounted
-map { -e and system("umount $_") } ($MNT, map { "/media/ephemeral$_" } qw(0..3));
+map { -e and system("umount $_") } ($MNT, map { "/media/ephemeral$_" } (0..3));
+
+maybe_create_md0($DEV, @DEVS);
 
 only_once("prewarm-complete", sub {
 	block_write($DEV, 'prewarm-write');
@@ -81,7 +81,7 @@ sub maybe_create_md0 {
 	print("$create already exists\n"), return if -e $create;
 	printf("Creating %s from %s\n", $create, join(', ', @from));
 
-	system(sprintf('mdadm --create %s --level=0 -c256 --raid-devices=%d %s', $create, scalar(@from), join(' ', @from)))
+	system(sprintf('mdadm --create %s --run --level=0 -c256 --raid-devices=%d %s', $create, scalar(@from), join(' ', @from)))
 		and die("Could not create $create: $!");
 	}
 
