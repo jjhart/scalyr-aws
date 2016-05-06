@@ -1,8 +1,9 @@
-c4.8xlarge
 c3.4xlarge
 c3.8xlarge
+c4.8xlarge
 c4.xlarge
+i2.4xlarge
+i2.8xlarge
 m1.xlarge
 m3.2xlarge
 m4.4xlarge
-i2.4xlarge
