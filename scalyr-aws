@@ -169,7 +169,7 @@ def commandLaunch( parser ):
     parser.add_argument( '--count', required=True, type=int,help="The number of instances to launch" )
     parser.add_argument( '--hours', default=0,type=int,help="the number of hours to run the group for" )
     parser.add_argument( '--zone', required=True, help="The availability zone to launch in" )
-    parser.add_argument( '--image', default='ami-0d4cfd66', help="The image to use for this instance" )
+    parser.add_argument( '--image', default='ami-08111162', help="The image to use for this instance" )
     parser.add_argument( '--aws_key_pair', default='scalyr-aws', help="The keypair name to use for this instance" )
     parser.add_argument( '--security_group', default='sg-10012377', help="The security group" )
     parser.add_argument( '--scalyr_api_key', required=True,help="The Scalyr API key to use" )
@@ -205,6 +205,18 @@ def commandLaunch( parser ):
                                         'Placement' : {
                                           'AvailabilityZone' : args.zone,
                                         },
+																				# extra ephemeral mappings are ignored, so we go maximal below to support up to i2.8xlarge
+																				'BlockDeviceMappings' : [
+																					 { 'DeviceName': '/dev/xvda', 'Ebs' : { 'DeleteOnTermination' : True, 'VolumeSize' : 8 } },
+																					 { 'DeviceName': '/dev/xvdb' , 'VirtualName' : 'ephemeral0' },
+																					 { 'DeviceName': '/dev/xvdc' , 'VirtualName' : 'ephemeral1' },
+																					 { 'DeviceName': '/dev/xvdd' , 'VirtualName' : 'ephemeral2' },
+																					 { 'DeviceName': '/dev/xvde' , 'VirtualName' : 'ephemeral3' },
+																					 { 'DeviceName': '/dev/xvdf' , 'VirtualName' : 'ephemeral4' },
+																					 { 'DeviceName': '/dev/xvdg' , 'VirtualName' : 'ephemeral5' },
+																					 { 'DeviceName': '/dev/xvdh' , 'VirtualName' : 'ephemeral6' },
+																					 { 'DeviceName': '/dev/xvdi' , 'VirtualName' : 'ephemeral7' }
+																				],
                                         'IamInstanceProfile': {
                                           'Name': 's3bench-provision'
                                         },

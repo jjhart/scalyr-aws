@@ -14,7 +14,7 @@ install_java_1_8() {
 
 install_java_1_8 >> install.java.log 2>&1
 
-aws s3 cp --sse s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
+aws s3 cp s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
 
 read -d '' AGENT_JSON << EOF
@@ -54,10 +54,12 @@ mkdir -p "$BASE_DIR"
 
 cd "$BASE_DIR"
 
-aws s3 cp --sse s3://com.scalyr.s3bench/run.sh .
-aws s3 cp --sse s3://com.scalyr.s3bench/log4j2.xml .
-aws s3 cp --sse s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
-aws s3 cp --sse s3://com.scalyr.s3bench/keepalive.sh .
+aws s3 cp s3://com.scalyr.s3bench/run.sh .
+aws s3 cp s3://com.scalyr.s3bench/ddwrap.pl .
+aws s3 cp s3://com.scalyr.s3bench/dd_keepalive.sh .
+aws s3 cp s3://com.scalyr.s3bench/log4j2.xml .
+aws s3 cp s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
+aws s3 cp s3://com.scalyr.s3bench/keepalive.sh .
 
 chmod u+x $BASE_DIR/run.sh
 chmod u+x $BASE_DIR/keepalive.sh
@@ -74,6 +76,9 @@ echo "sizesAndThreads = '%sizes_and_threads%'" >> $BASE_DIR/instance.properties
 
 chown -R ec2-user:ec2-user /home/ec2-user
 
+KEEPALIVE='keepalive.sh'
+# KEEPALIVE='dd_keepalive.sh' # UNCOMMENT TO RUN THE ddwrap.pl BENCHMARK
+
 echo "SHELL=\"/bin/bash\"
-* * * * * /bin/bash $BASE_DIR/keepalive.sh $BASE_DIR" | crontab -u ec2-user -
+* * * * * /bin/bash $BASE_DIR/$KEEPALIVE $BASE_DIR" | crontab -u ec2-user -
 
