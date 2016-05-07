@@ -140,7 +140,7 @@ sub maybe_prewarm {
 
 sub prewarm {
 	my ($label, @devs) = @_;
-	dds($label, dev_size(@devs), map { "dd bs=1MiB if=/dev/zero of=$_ conv=fsync 2>&1" } @devs);
+	dds($label, dev_size(@devs), map { "dd bs=1MB if=/dev/zero of=$_ conv=fsync 2>&1" } @devs);
 	}
 
 sub block_dd {

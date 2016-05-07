@@ -56,10 +56,12 @@ mkdir -p "$BASE_DIR"
 
 cd "$BASE_DIR"
 
+mkdir -p lib/Proc/
+
 aws s3 cp s3://com.scalyr.s3bench/run.sh .
 aws s3 cp s3://com.scalyr.s3bench/ddwrap.pl .
 aws s3 cp s3://com.scalyr.s3bench/dd_keepalive.sh .
-aws s3 cp s3://com.scalyr.s3bench/lib . --recursive 
+aws s3 cp s3://com.scalyr.s3bench/lib/Proc/ParallelLoop.pm lib/Proc/
 aws s3 cp s3://com.scalyr.s3bench/log4j2.xml .
 aws s3 cp s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
 aws s3 cp s3://com.scalyr.s3bench/keepalive.sh .
