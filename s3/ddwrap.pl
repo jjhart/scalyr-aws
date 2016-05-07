@@ -138,6 +138,8 @@ sub maybe_prewarm {
 		});
 	}
 
+# note prewarm only parallelizes across devices, not within them.  this is to  ensure the *entire* disk gets prewarmed.
+# block_dd skips the ragged end of the drive, after the last base10-aligned 1GB chunk
 sub prewarm {
 	my ($label, @devs) = @_;
 	dds($label, dev_size(@devs), map { "dd bs=1MB if=/dev/zero of=$_ conv=fsync 2>&1" } @devs);
