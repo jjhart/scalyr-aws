@@ -14,6 +14,8 @@ install_java_1_8() {
 
 install_java_1_8 >> install.java.log 2>&1
 
+yes | yum install 'perl(Time::HiRes)' &>> install.perl-libs.log
+
 aws s3 cp s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
 
@@ -57,6 +59,7 @@ cd "$BASE_DIR"
 aws s3 cp s3://com.scalyr.s3bench/run.sh .
 aws s3 cp s3://com.scalyr.s3bench/ddwrap.pl .
 aws s3 cp s3://com.scalyr.s3bench/dd_keepalive.sh .
+aws s3 cp s3://com.scalyr.s3bench/lib . --recursive 
 aws s3 cp s3://com.scalyr.s3bench/log4j2.xml .
 aws s3 cp s3://com.scalyr.s3bench/s3bench-1.0.10-jar-with-dependencies.jar .
 aws s3 cp s3://com.scalyr.s3bench/keepalive.sh .
