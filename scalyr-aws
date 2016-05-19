@@ -150,7 +150,7 @@ def prepareProvisionScript( api_key, agent_config, group, sizes_and_threads, enc
     result = replaceAll( script, {
                                     '%agent.json%' : agent_config,
                                     '%groupId%' : group,
-                                    '%sizes_and_threads%' : sizes_and_threads
+                                    '%sizes_and_threads%' : sizes_and_threads,
                                     '%apiKey%' : api_key
                                })
 
