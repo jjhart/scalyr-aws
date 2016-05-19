@@ -23,4 +23,4 @@ GC_FLAGS="-verbosegc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDate
 # use "latest" (alphasort - not ideal) jarfile in case of > 1.  Should only be one, as "provision.sh" copies only one to local machine
 JARFILE=$(ls -1 ${BASE_DIR}/s3bench-*-jar-with-dependencies.jar | tail -1)
 
-java $LOG_FLAGS $HEAP_FLAGS $GC_FLAGS -jar $JARFILE "$@"
+java $LOG_FLAGS $HEAP_FLAGS $GC_FLAGS -jar $JARFILE "$@" > /var/log/s3bench/s3bench.log
