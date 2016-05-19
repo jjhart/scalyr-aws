@@ -72,9 +72,14 @@ chmod u+x $BASE_DIR/keepalive.sh
 MIN_HEAP=`free -m | grep Mem | awk '{print int($2*.80) "m"}'`
 MAX_HEAP=`free -m | grep Mem | awk '{print int($2*.85) "m"}'`
 
+
+# note that scalyr-aws generates provision.sh from within python (replacing 'apiKey' below, eg)
+# provision.sh is then uploaded as the AWS user-content file & executed, thus generating other files
 sed -i "s#%baseDir%#$BASE_DIR#" $BASE_DIR/run.sh
 sed -i "s/%minHeap%/$MIN_HEAP/" $BASE_DIR/run.sh
 sed -i "s/%maxHeap%/$MAX_HEAP/" $BASE_DIR/run.sh
+sed -i "s~%writeLogToken%~%apiKey%~" $BASE_DIR/run.sh
+sed -i "s~%serverHost%~$SERVER_HOST~" $BASE_DIR/run.sh
 
 echo "serverHost = $SERVER_HOST" > $BASE_DIR/instance.properties
 echo "sizesAndThreads = '%sizes_and_threads%'" >> $BASE_DIR/instance.properties

@@ -142,7 +142,7 @@ def prepareAgentConfig( api_key, instance_type, count, region, zone ):
 
     return replaceAll( content, items )
 
-def prepareProvisionScript( agent_config, group, sizes_and_threads, encode=True ):
+def prepareProvisionScript( api_key, agent_config, group, sizes_and_threads, encode=True ):
     script = ""
     with open( 'provision.sh', 'r' ) as f:
         script = f.read()
@@ -151,6 +151,7 @@ def prepareProvisionScript( agent_config, group, sizes_and_threads, encode=True 
                                     '%agent.json%' : agent_config,
                                     '%groupId%' : group,
                                     '%sizes_and_threads%' : sizes_and_threads
+                                    '%apiKey%' : api_key
                                })
 
     if encode:
@@ -191,7 +192,7 @@ def commandLaunch( parser ):
         current_price = Decimal( price['SpotPrice'] )
 
     agent_config = prepareAgentConfig( args.scalyr_api_key, args.type, args.count, REGION_NAME, args.zone )
-    provision_script = prepareProvisionScript( agent_config, group, args.sizes_and_threads )
+    provision_script = prepareProvisionScript( args.scalyr_api_key, agent_config, group, args.sizes_and_threads )
 
     instances = ec2.request_spot_instances(
                                       SpotPrice=str(args.price),

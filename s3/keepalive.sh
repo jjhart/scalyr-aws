@@ -1,16 +1,9 @@
 #!/bin/bash
 
-BASE_DIR=$1
-if [ -z "$1" ]; then
-   BASE_DIR=$HOME 
-fi
+BASE_DIR=${1-$HOME};
 
-# use "latest" (alphasort) jarfile in case of > 1.  Should only be one, as "provision.sh" copies only one to local machine
-JARFILE=$(ls -1 $BASE_DIR/s3bench-1.0.?-jar-with-dependencies.jar | tail -1)
+[ -d /var/log/s3bench ] || mkdir -p /var/log/s3bench
 
-
-ps -ef | grep "[j]ava.*s3bench" &> /dev/null
-if [ $? -ne 0 ]; then
-    $BASE_DIR/run.sh $JARFILE $BASE_DIR/instance.properties &> $BASE_DIR/output-`date "+%Y-%m-%dT%H:%M"`.log&
-fi
+# run.sh execs 'java ... -jar s3bench "$@"'
+ps -ef | grep -q "[j]ava.*s3bench" || $BASE_DIR/run.sh $BASE_DIR/instance.properties &> $BASE_DIR/output-`date "+%Y-%m-%dT%H:%M"`.log&
 
