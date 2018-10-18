@@ -11,6 +11,7 @@ from email.mime.text import MIMEText
 import json
 import os
 import pytz
+import re
 import smtplib
 import subprocess
 import sys
@@ -35,7 +36,9 @@ def load_instance_types( filename="instance.types" ):
             'c4.xlarge'
         ]
     lines.append( 't2.micro' )
-    return lines
+
+    # this 'filter' call removes blank lines or those starting with '#'
+    return filter(lambda x: re.sub(r'#.*$', '', x), lines)
 
 def get_availability_zones( ec2 ):
     response = ec2.describe_availability_zones( Filters=[ { 'Name': 'state', 'Values' : ['available'] } ] )
@@ -291,7 +294,7 @@ def commandListGroups( parser ):
                     count, timestamp = groups[tag['Value']]
                     groups[tag['Value']] = (count+1, timestamp)
 
-   
+
     if groups:
         print "The following s3benchmarking groups are active"
         for group, (count, timestamp) in groups.iteritems():
