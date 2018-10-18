@@ -87,7 +87,7 @@ echo "sizesAndThreads = '%sizes_and_threads%'" >> $BASE_DIR/instance.properties
 chown -R ec2-user:ec2-user /home/ec2-user
 
 KEEPALIVE='keepalive.sh'
-KEEPALIVE='dd_keepalive.sh' # COMMENT OUT TO RUN THE S3 BENCHMARK
+#KEEPALIVE='dd_keepalive.sh' # COMMENT OUT TO RUN THE S3 BENCHMARK
 
 echo "SHELL=\"/bin/bash\"
 * * * * * /bin/bash $BASE_DIR/$KEEPALIVE $BASE_DIR" | crontab -u ec2-user -
