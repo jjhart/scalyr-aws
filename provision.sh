@@ -3,6 +3,10 @@
 mkdir -p /tmp/provision
 cd /tmp/provision
 
+#--------------------------------------------------------------------------------
+# install dependencies
+#--------------------------------------------------------------------------------
+
 # upgrade to java 1.8 if not already; using hard path as found on CNC server post-upgrade
 install_java_1_8() {
 	echo $(date) ' ... checking for java 1.8'
@@ -16,6 +20,9 @@ install_java_1_8 >> install.java.log 2>&1
 
 yes | yum install 'perl(Time::HiRes)' &>> install.perl-libs.log
 
+#--------------------------------------------------------------------------------
+# setup scalyr-agent
+#--------------------------------------------------------------------------------
 aws s3 cp s3://com.scalyr.s3bench/install-scalyr-agent-2.sh . && \
   /bin/bash ./install-scalyr-agent-2.sh
 
@@ -51,6 +58,20 @@ chown ec2-user:ec2-user $LOG_DIR
 
 scalyr-agent-2 start
 
+
+#--------------------------------------------------------------------------------
+# add additional authorized_keys (from s3)
+#--------------------------------------------------------------------------------
+KFILE=/home/ec2-user/.ssh/authorized_keys
+mkdir -p $(dirname $KFILE)
+aws s3 cp s3://com.scalyr.s3bench/authorized_keys .
+cat authorized_keys >> $KFILE
+chmod 0600 $KFILE
+
+
+#--------------------------------------------------------------------------------
+# setup the s3bench directory
+#--------------------------------------------------------------------------------
 BASE_DIR=/home/ec2-user/s3bench
 mkdir -p "$BASE_DIR"
 
@@ -91,4 +112,3 @@ KEEPALIVE='keepalive.sh'
 
 echo "SHELL=\"/bin/bash\"
 * * * * * /bin/bash $BASE_DIR/$KEEPALIVE $BASE_DIR" | crontab -u ec2-user -
-
