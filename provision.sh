@@ -4,6 +4,19 @@ mkdir -p /tmp/provision
 cd /tmp/provision
 
 #--------------------------------------------------------------------------------
+# Provision ephemeral SSD if available.  
+#--------------------------------------------------------------------------------
+
+# Look for 2 SSDs and mount them as RAID 0 if available
+lsblk | grep nvme1n1
+if [ $? -eq 0 ]; then
+   yes | sudo mdadm --create /dev/md0 --level=0 -c256 --raid-devices=2 /dev/nvme0n1 /dev/nvme1n1
+   mkfs -E nodiscard -t ext4 /dev/md0
+   mount -t ext4 -o noatime /dev/md0 /mnt
+   chmod 777 /mnt
+fi
+
+#--------------------------------------------------------------------------------
 # install dependencies
 #--------------------------------------------------------------------------------
 
